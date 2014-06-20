@@ -107,7 +107,7 @@ class ulPassword
 	{
 		// Check if it is any of the common passwords
 		$pwdlist = UL_INC_DIR.'/data/pwdlist';
-		if (fie_exists($pwdlist))
+		if (file_exists($pwdlist))
 		{
 			$lines = file($pwdlist, FILE_IGNORE_NEW_LINES);
 			if (ulUtils::in_array($pwd, $lines))
