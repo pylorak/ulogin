@@ -36,7 +36,7 @@ class ulPdoDb
 			    break;
 			case 'update':
 			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_UPDATE_USER;
-			    $ul_db_pwd = UL_PDO_UPDATE_PWD;
+			    $ul_db_pwd  = isset($UL_PDO) ? $UL_PDO[$mode]['pass'] : UL_PDO_UPDATE_PWD;
 			    break;
 			case 'delete':
 			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_DELETE_USER;
