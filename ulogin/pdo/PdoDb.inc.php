@@ -22,6 +22,8 @@ class ulPdoDb
 
 	private static function Connect($mode)
 	{
+		global $UL_PDO;
+		
 		if ((self::$dbcon == NULL) || (self::$dbmode != $mode))
 		{
 			self::$preparedStmts = array();
@@ -29,24 +31,24 @@ class ulPdoDb
 			switch ($mode)
 			{
 			case 'auth':
-			    $ul_db_user = UL_PDO_AUTH_USER;
-			    $ul_db_pwd = UL_PDO_AUTH_PWD;
+			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_AUTH_USER;
+			    $ul_db_pwd  = isset($UL_PDO) ? $UL_PDO[$mode]['pass'] : UL_PDO_AUTH_PWD;
 			    break;
 			case 'update':
-			    $ul_db_user = UL_PDO_UPDATE_USER;
+			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_UPDATE_USER;
 			    $ul_db_pwd = UL_PDO_UPDATE_PWD;
 			    break;
 			case 'delete':
-			    $ul_db_user = UL_PDO_DELETE_USER;
-			    $ul_db_pwd = UL_PDO_DELETE_PWD;
+			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_DELETE_USER;
+			    $ul_db_pwd  = isset($UL_PDO) ? $UL_PDO[$mode]['pass'] : UL_PDO_DELETE_PWD;
 			    break;
 			case 'log':
-			    $ul_db_user = UL_PDO_LOG_USER;
-			    $ul_db_pwd = UL_PDO_LOG_PWD;
+			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_LOG_USER;
+			    $ul_db_pwd  = isset($UL_PDO) ? $UL_PDO[$mode]['pass'] : UL_PDO_LOG_PWD;
 			    break;
 			case 'session':
-			    $ul_db_user = UL_PDO_SESSIONS_USER;
-			    $ul_db_pwd = UL_PDO_SESSIONS_PWD;
+			    $ul_db_user = isset($UL_PDO) ? $UL_PDO[$mode]['user'] : UL_PDO_SESSIONS_USER;
+			    $ul_db_pwd  = isset($UL_PDO) ? $UL_PDO[$mode]['pass'] : UL_PDO_SESSIONS_PWD;
 			    break;
 			default:
 			    ul_fail('Invalid database open mode.');
@@ -56,7 +58,8 @@ class ulPdoDb
 
 			try
 			{
-				self::$dbcon = new PDO(UL_PDO_CON_STRING, $ul_db_user, $ul_db_pwd, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
+				$con_string =  isset($UL_PDO) ? $UL_PDO['con_string'] : UL_PDO_CON_STRING;
+				self::$dbcon = new PDO($con_string, $ul_db_user, $ul_db_pwd, array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION));
 			}
 			catch(PDOException $e)
 			{

@@ -67,4 +67,23 @@ define('UL_PDO_SESSIONS_PWD', 'CHANGE ME!!!');
 define('UL_PDO_LOG_USER', 'CHANGE ME!!!');
 define('UL_PDO_LOG_PWD', 'CHANGE ME!!!');
 
+// ------------------------------------------------
+//	RUNTIME CONFIGURATION 
+//	 (priority over constants - uncomment if needed)
+// ------------------------------------------------
+
+/**
+ * All the options in form of array. UL_PDO_CON_INIT_QUERY is 
+ * assumed to be the same for all configs but it can be added
+ * here later.
+ */
+// $UL_PDO = array(
+//     'con_string'=> 'mysql:host=127.0.0.1;dbname=ulogin',
+//     'auth' 	=> array('user'=> 'CHANGE ME!!!', 'pass'=> 'CHANGE ME!!!'),
+//     'update' 	=> array('user'=> 'CHANGE ME!!!', 'pass'=> 'CHANGE ME!!!'),
+//     'delete' 	=> array('user'=> 'CHANGE ME!!!', 'pass'=> 'CHANGE ME!!!'),
+//     'session' 	=> array('user'=> 'CHANGE ME!!!', 'pass'=> 'CHANGE ME!!!'),
+//     'log' 	=> array('user'=> 'CHANGE ME!!!', 'pass'=> 'CHANGE ME!!!')
+// );
+
 ?>

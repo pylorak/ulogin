@@ -31,7 +31,7 @@ class KeyStats {
 	function __construct($AuthResult) {
 		error_log("---------------------------------------------------");
 		//Key Requested:
-		$this->key = &$AuthResult['apikey'];
+		$this->key = &$AuthResult['key'];
 		//Entire row inside the database:
 		$this->row = $AuthResult;
 
@@ -71,7 +71,7 @@ class KeyStats {
 		$this->tsupdate = $this->mdiff($now, $this->tsupdate);
 		$now = $this::nowstring();
 
-		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_APIKeys SET count=count+1, tstamp=? WHERE apikey=?');
+		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET count=count+1, tstamp=? WHERE key=?');
 		if (!ulPdoDb::BindExec($stmt, null, array(&$now, 'str', &$this->key, 'str'))) {
 			ul_db_fail();
 			return $err;
@@ -82,7 +82,7 @@ class KeyStats {
 	//Increments the blockedcount which is the number times the api key
 	//has been hit from when it was blocked:
 	public function inkblockcount() {
-		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_APIKeys SET blockedcount=blockedcount+1 WHERE apikey=?');
+		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET blockedcount=blockedcount+1 WHERE key=?');
 		if (!ulPdoDb::BindExec($stmt, NULL, array(&$this->key, 'str'))) {
 			ul_db_fail();
 			return $err;
@@ -129,7 +129,7 @@ class KeyStats {
 		$blockedcount = $this->row['blockedcount']*TRANSFERPENALTY;
 
 		//Query
-		$stmt = ulPdoDb::Prepare('update','UPDATE ul_APIKeys SET blockedcount=0, count=?, stats_reset=?, tstamp=? WHERE apikey=?');
+		$stmt = ulPdoDb::Prepare('update','UPDATE ul_apikeys SET blockedcount=0, count=?, stats_reset=?, tstamp=? WHERE key=?');
 		$d = $this::nowstring();
 		if (!ulPdoDb::BindExec($stmt, NULL, array(&$blockedcount, 'int', &$d, 'str', &$now, 'str', &$this->key, 'str'))) {
 			ul_db_fail();

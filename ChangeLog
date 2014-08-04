@@ -2,4 +2,4 @@
 * urban-1 (dev)
  - Added: Support for key-based (API) authentication on PDO backend
  - Added: ChangeLog
- - Changed: PDO config to support dynamic DB configuration
+ - Changed: PDO config to support dynamic DB configuration (optionally)
