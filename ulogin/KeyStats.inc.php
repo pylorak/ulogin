@@ -4,12 +4,11 @@
  * TODO:
  * 
  * Contributors:
- *  - Harry Kaizen 07-08/2014
+ *  - Harry Kaizen 07-08/2014 (himion0@gmail.com)
  *  - Andreas Bontozoglou (bodozoglou@gmail.com)
  * 
  */
 require_once(UL_INC_DIR.'/config/all.inc.php');
-// require_once(UL_INC_DIR.'/main.inc.php'); // Check SNE is included
 
 class KeyStats {
 	//Stats variables:

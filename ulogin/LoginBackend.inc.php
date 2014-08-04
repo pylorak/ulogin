@@ -40,36 +40,6 @@ class ulLoginBackend
 		return false;
 	}
 
-	
-	/**
-	 * Authenticate based on key. 
-	 * 
-	 * @return: The key entry from the database (including some basic statistics
-	 * for this key). false if they key does not exist...
-	 */
-	public function AuthenticateKey($key) {
-		$stmt = ulPdoDb::Prepare('auth','SELECT * FROM ul_apikeys WHERE key=?');
-		if (!ulPdoDb::BindExec(
-			$stmt,
-			null,
-			array(		// input
-				&$key, 'str'
-				)
-			))
-		{	
-			ul_db_fail();
-			return ulLoginBackend::BACKEND_ERROR;
-		}
-
-		$row = $stmt->fetch();
-		
-		if ($row == false) return false;
-		
-		$this->AuthResult = $row;
-		return $row;
-		
-	}
-
 	// Tries to authenticate a user against the backend.
 	// Returns true if sccessfully authenticated,
 	// or an error code otherwise.
