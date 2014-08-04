@@ -175,7 +175,7 @@ define('UL_PROXY_HEADER', '');
 // Enable during development and testing, disable for
 // for production websites.
 define('UL_DEBUG', true);
-define('UL_GENERIC_ERROR_MSG', 'An error occured. Please try again or contact the administrator.');
+define('UL_GENERIC_ERROR_MSG', 'An error occurred. Please try again or contact the administrator.');
 
 // Set to the upper most root path of the website. This is only used to mask
 // out the given path portion in error messages, for the case a user happens

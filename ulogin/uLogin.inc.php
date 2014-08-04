@@ -301,9 +301,9 @@ class uLogin
 
 	// Creates a new user in the database.
 	// Returns true if successful, false if the user already exists or inputs are
-  // invalid, NULL on other errors.
-  // $profile, if supplied, contains backend-specific data to be inserted, where
-  // backend is supposed to simultanously contain login and profile information (eg. LDAP.)
+	// invalid, NULL on other errors.
+	// $profile, if supplied, contains backend-specific data to be inserted, where
+	// backend is supposed to simultanously contain login and profile information (eg. LDAP.)
 	public function CreateUser($username, $password, $profile=NULL)
 	{
 		// Validate user input
@@ -481,6 +481,14 @@ class uLogin
 
 		return $uid;
 	}
+
+	/**
+	 * Return an array of username/id pairs
+	 */
+	public function GetAllUsers(){
+	    return $this->Backend->GetAllUsers();
+	}
 }
 
 ?>
+

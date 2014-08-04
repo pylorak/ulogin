@@ -229,7 +229,7 @@ class ulPassword
 		else if (ulUtils::BeginsWith($salt, '{CRYPT}'))
 		{
 			$salt = substr($salt, 7);
-      if ($salt == '') $salt = self::BCryptSalt();
+			if ($salt == '') $salt = self::BCryptSalt();
 
 			// We must not preprocess here to stay compatible with other applications
 			return '{CRYPT}'.crypt($password,  $salt);

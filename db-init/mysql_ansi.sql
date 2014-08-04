@@ -54,6 +54,6 @@ CREATE TABLE "ul_apikeys" (
   "blockedcount" int(1) NOT NULL DEFAULT 0,
   "tstamp" varchar(27) CHARACTER SET ascii NOT NULL DEFAULT '01-01-2000 00:00:00.000000',
   PRIMARY KEY ("id"),
-  UNIQUE KEY "apikey" ("apikey"),
+  UNIQUE KEY "key" ("key"),
   FOREIGN KEY ("uid") REFERENCES "ul_logins"("id") ON DELETE CASCADE ON UPDATE CASCADE
 ) AUTO_INCREMENT=1;

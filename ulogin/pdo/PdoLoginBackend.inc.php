@@ -344,6 +344,34 @@ class ulPdoLoginBackend extends ulLoginBackend
 
 		return new DateTime($expires);
  	}
+
+	/**
+	 * Return an array of username/id pairs
+	 */
+	public function GetAllUsers(){
+		$uid   = -1;
+		$uname = "";
+		$stmt = ulPdoDb::Prepare('auth', 'SELECT username,id FROM ul_logins');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			array(		// output
+				&$uname, 'str',
+				&$uid, 'int'
+			),
+			null
+		))
+		{
+			ul_db_fail();
+			return false;
+		}
+		
+		// Assoc fetch seems better here
+		$res = array();
+		while (($it=$stmt->fetch(PDO::FETCH_ASSOC))){
+		    $res[]=$it;
+		}
+		return $res;
+	}
 }
 
 ?>

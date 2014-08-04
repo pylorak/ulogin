@@ -142,6 +142,13 @@ class ulLoginBackend
 		return ulLoginBackend::NOT_IMPLEMENTED;
 	}
 
+	/**
+	 * Return an array of username/id pairs
+	 */
+	public function GetAllUsers(){
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+
 }
 
 ?>
