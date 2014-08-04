@@ -179,6 +179,17 @@ class uLogin
 		return true;
 	}
 
+	/**
+	 * Wrapper (to the backend) to authenticate by key
+	 */
+	public function AuthenticateKey($key) {
+		$this->AuthResult = $this->Backend->AuthenticateKey($key);
+		if ($this->IsAuthSuccess())
+			return true;
+		return false;
+		
+	}
+
 	// Given a uid and a password, this function returns the uid,
 	// if all of the following conditions are met:
 	// - specified user has the specified password

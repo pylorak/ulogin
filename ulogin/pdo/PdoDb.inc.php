@@ -26,33 +26,33 @@ class ulPdoDb
 		{
 			self::$preparedStmts = array();
 			self::$dbmode = $mode;
-            switch ($mode)
-            {
-              case 'auth':
-				$ul_db_user = UL_PDO_AUTH_USER;
-				$ul_db_pwd = UL_PDO_AUTH_PWD;
-                break;
-              case 'update':
-				$ul_db_user = UL_PDO_UPDATE_USER;
-				$ul_db_pwd = UL_PDO_UPDATE_PWD;
-                break;
-              case 'delete':
-				$ul_db_user = UL_PDO_DELETE_USER;
-				$ul_db_pwd = UL_PDO_DELETE_PWD;
-                break;
-              case 'log':
-				$ul_db_user = UL_PDO_LOG_USER;
-				$ul_db_pwd = UL_PDO_LOG_PWD;
-                break;
-              case 'session':
-				$ul_db_user = UL_PDO_SESSIONS_USER;
-				$ul_db_pwd = UL_PDO_SESSIONS_PWD;
-                break;
-              default:
-				ul_fail('Invalid database open mode.');
-				return NULL;
-                break;
-            }
+			switch ($mode)
+			{
+			case 'auth':
+			    $ul_db_user = UL_PDO_AUTH_USER;
+			    $ul_db_pwd = UL_PDO_AUTH_PWD;
+			    break;
+			case 'update':
+			    $ul_db_user = UL_PDO_UPDATE_USER;
+			    $ul_db_pwd = UL_PDO_UPDATE_PWD;
+			    break;
+			case 'delete':
+			    $ul_db_user = UL_PDO_DELETE_USER;
+			    $ul_db_pwd = UL_PDO_DELETE_PWD;
+			    break;
+			case 'log':
+			    $ul_db_user = UL_PDO_LOG_USER;
+			    $ul_db_pwd = UL_PDO_LOG_PWD;
+			    break;
+			case 'session':
+			    $ul_db_user = UL_PDO_SESSIONS_USER;
+			    $ul_db_pwd = UL_PDO_SESSIONS_PWD;
+			    break;
+			default:
+			    ul_fail('Invalid database open mode.');
+			    return NULL;
+			    break;
+			}
 
 			try
 			{
@@ -66,11 +66,11 @@ class ulPdoDb
 
 			self::$dbcon->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_SILENT);
 
-      // Hack to try to avoid "HY000: database is locked" error with sqlite driver.
-      if (self::$dbcon->getAttribute(PDO::ATTR_DRIVER_NAME) == 'sqlite')
-      {
-        self::$dbcon->setAttribute(PDO::ATTR_TIMEOUT, 30);
-      }
+			// Hack to try to avoid "HY000: database is locked" error with sqlite driver.
+			if (self::$dbcon->getAttribute(PDO::ATTR_DRIVER_NAME) == 'sqlite')
+			{
+			    self::$dbcon->setAttribute(PDO::ATTR_TIMEOUT, 30);
+			}
 
 			if (UL_PDO_CON_INIT_QUERY != '')
 			{

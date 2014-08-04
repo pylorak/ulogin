@@ -42,3 +42,18 @@ CREATE TABLE "ul_sessions" (
   "lock_expires" varchar(26) CHARACTER SET ascii NOT NULL,
   PRIMARY KEY ("id")
 );
+
+CREATE TABLE "ul_apikeys" (
+  "id" int(10) unsigned NOT NULL AUTO_INCREMENT,
+  "uid" int(11) NOT NULL,
+  "key" varchar(64) CHARACTER SET ascii NOT NULL,
+  "type" int(11) NOT NULL,
+  "date_created" varchar(26) CHARACTER SET ascii NOT NULL,
+  "stats_reset" varchar(26) CHARACTER SET ascii NOT NULL,
+  "count" int(3) NOT NULL DEFAULT '0',
+  "blockedcount" int(1) NOT NULL DEFAULT 0,
+  "tstamp" varchar(27) CHARACTER SET ascii NOT NULL DEFAULT '01-01-2000 00:00:00.000000',
+  PRIMARY KEY ("id"),
+  UNIQUE KEY "apikey" ("apikey"),
+  FOREIGN KEY ("uid") REFERENCES "ul_logins"("id") ON DELETE CASCADE ON UPDATE CASCADE
+) AUTO_INCREMENT=1;

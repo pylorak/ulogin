@@ -1,4 +1,13 @@
 <?php
+/**
+ * @file
+ * 
+ * Contributors:
+ *  - Harry Kaizen 07-08/2014
+ *  - Andreas Bontozoglou (bodozoglou@gmail.com)
+ * 
+ * 
+ */
 
 class ulLoginBackend
 {
@@ -31,12 +40,50 @@ class ulLoginBackend
 		return false;
 	}
 
+	
+	/**
+	 * Authenticate based on key. 
+	 * 
+	 * @return: The key entry from the database (including some basic statistics
+	 * for this key). false if they key does not exist...
+	 */
+	public function AuthenticateKey($key) {
+		$stmt = ulPdoDb::Prepare('auth','SELECT * FROM ul_apikeys WHERE key=?');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			null,
+			array(		// input
+				&$key, 'str'
+				)
+			))
+		{	
+			ul_db_fail();
+			return ulLoginBackend::BACKEND_ERROR;
+		}
+
+		$row = $stmt->fetch();
+		
+		if ($row == false) return false;
+		
+		$this->AuthResult = $row;
+		return $row;
+		
+	}
+
 	// Tries to authenticate a user against the backend.
 	// Returns true if sccessfully authenticated,
 	// or an error code otherwise.
 	public function Authenticate($uid, $pass)
 	{
 		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * AuthenticateKey to support key-based auth 
+	 * in the backend
+	 */
+	public function AuthenticateKey($key){
+		return false;
 	}
 
 	// Given the backend-specific unique identifier, returns
