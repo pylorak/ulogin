@@ -4,8 +4,8 @@
  * TODO:
  * 
  * Contributors:
- *  - Harry Kaizen 07-08/2014 (himion0@gmail.com)
- *  - Andreas Bontozoglou (bodozoglou@gmail.com)
+ *  - 07-08/2014 Harry Kaizen - Core Code (himion0@gmail.com)
+ *  - Andreas Bontozoglou     - GitHub integration (bodozoglou@gmail.com)
  * 
  */
 require_once(UL_INC_DIR.'/config/all.inc.php');

@@ -6,6 +6,7 @@
  *  - Harry Kaizen 07-08/2014
  *  - Andreas Bontozoglou (bodozoglou@gmail.com)
  * 
+ * Should this class be abstract? (harder to expand/add methods)
  * 
  */
 
@@ -52,8 +53,33 @@ class ulLoginBackend
 	 * AuthenticateKey to support key-based auth 
 	 * in the backend
 	 */
-	public function AuthenticateKey($key){
+	public function AuthenticateKey($key)
+	{
 		return false;
+	}
+
+	/**
+	 * Create a new key for the given user
+	 */
+	public function CreateKey($uid, $type=0)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * Delete a key
+	 */
+	public function DeleteKey($kid)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * Block a key for a specific time
+	 */ 
+	public function BlockKey($kid, $block_secs)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
 	}
 
 	// Given the backend-specific unique identifier, returns
@@ -146,6 +172,13 @@ class ulLoginBackend
 	 * Return an array of username/id pairs
 	 */
 	public function GetAllUsers(){
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+
+	/**
+	 * Get all keys for a user. 
+	 */
+	public function GetKeysForUser($uid=-1) {
 		return ulLoginBackend::NOT_IMPLEMENTED;
 	}
 

@@ -190,6 +190,18 @@ class uLogin
 		
 	}
 
+	/**
+	 * Create new Key for a given user id
+	 */
+	public function CreateKey($uid, $type=0){
+		$ret = $this->Backend->CreateKey($uid, $type);
+		var_dump(ulPdoDb::ErrorMsg());
+		if ($ret !== true) return false;
+
+		ulLog::Log("created api key", $uid, ulUtils::GetRemoteIP(false));
+		return true;
+	}
+
 	// Given a uid and a password, this function returns the uid,
 	// if all of the following conditions are met:
 	// - specified user has the specified password
@@ -482,12 +494,25 @@ class uLogin
 		return $uid;
 	}
 
+	
 	/**
-	 * Return an array of username/id pairs
+	 * Instead of wrapping backend methods...
 	 */
-	public function GetAllUsers(){
-	    return $this->Backend->GetAllUsers();
+	 public function __call($method, $arguments)
+	{
+	    // If we have it call it!
+	    if (method_exists($this,$method)) {
+		return call_user_func_array(array($this,$method), $arguments);
+	    }
+	    
+	    if (method_exists($this->Backend,$method)) {
+		return call_user_func_array(array($this->Backend, $method),$arguments);
+	    }
+	    
+	    return ulLoginBackend::NOT_IMPLEMENTED;
+	    
 	}
+
 }
 
 ?>

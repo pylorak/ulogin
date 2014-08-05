@@ -195,10 +195,11 @@ class ulSessionManager
 
 	public static function sessionDestroy()
 	{
-    ulLog::DebugLog('Destroying session data.', 1);
+		ulLog::DebugLog('Destroying session data.', 1);
 
-    $_SESSION = array();
-    setcookie(session_name(), '', time() - 42000, '/', (UL_DOMAIN === 'localhost') ? '' : UL_DOMAIN, ulUtils::IsHTTPS(), true);
+		$_SESSION = array();
+		setcookie(session_name(), '', time() - 42000, '/', 
+			    (UL_DOMAIN === 'localhost') ? '' : UL_DOMAIN, ulUtils::IsHTTPS(), true);
 		session_destroy();
 		self::$SessionStore = NULL;
 		self::$SessionRunning = false;
@@ -210,9 +211,9 @@ class ulSessionManager
 	 */
 	public static function changeSessionId($delete_old_session = false, $delete_old_immediately = true)
 	{
-    ulLog::DebugLog('Changing session id.', 1);
+		ulLog::DebugLog('Changing session id.', 1);
 
-    // If this session is obsolete it means there is already a new id
+		// If this session is obsolete it means there is already a new id
 		if(@$_SESSION['sses']['OBSOLETE'] == true)
 			return;
 
@@ -228,7 +229,7 @@ class ulSessionManager
 
 		// Grab current session ID and close both sessions to allow other scripts to use them
 		$newSession = session_id();
-    self::sessionWriteClose();
+		self::sessionWriteClose();
 
 		// Set session ID to the new one, and start it back up again
 		session_id($newSession);
