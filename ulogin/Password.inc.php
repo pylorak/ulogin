@@ -236,36 +236,36 @@ class ulPassword
 		}
 		else if (ulUtils::BeginsWith($salt, '{PBKDF2}'))
 		{
-      $hash_bytes = 96;
-      $hash_algo = UL_HMAC_FUNC;
-      $hash_rounds = pow(2,UL_PWD_ROUNDS);
-			$salt = substr($salt, 8);
-      if ($salt == '')
-        $salt = ulUtils::RandomBytes(16, true);
-      else
-      {
-        $parts = explode(':', $salt);
-        $hash_algo = $parts[0];
-        $hash_rounds = $parts[1];
-        $salt = $parts[2];
-      }
+		    $hash_bytes = 96;
+		    $hash_algo = UL_HMAC_FUNC;
+		    $hash_rounds = pow(2,UL_PWD_ROUNDS);
+					$salt = substr($salt, 8);
+		    if ($salt == '')
+			$salt = ulUtils::RandomBytes(16, true);
+		    else
+		    {
+			$parts = explode(':', $salt);
+			$hash_algo = $parts[0];
+			$hash_rounds = $parts[1];
+			$salt = $parts[2];
+		    }
 
-			// We must not preprocess here to stay compatible with other applications
-      return '{PBKDF2}' . $hash_algo . ':' . $hash_rounds . ':' .  $salt . ':' . 
-        base64_encode(pbkdf2(
-            $hash_algo,
-            $password,
-            $salt,
-            $hash_rounds,
-            $hash_bytes,
-            true
-        ));
+		    // We must not preprocess here to stay compatible with other applications
+		    return '{PBKDF2}' . $hash_algo . ':' . $hash_rounds . ':' .  $salt . ':' . 
+			base64_encode(pbkdf2(
+			    $hash_algo,
+			    $password,
+			    $salt,
+			    $hash_rounds,
+			    $hash_bytes,
+			    true
+			));
 		}
 		else
 		{
-      // For compatibility with older versions, an empty string is the same as '{BCRYPT}'
-      if (ulUtils::BeginsWith($salt, '{BCRYPT}'))
-        $salt = substr($salt, 8);
+		    // For compatibility with older versions, an empty string is the same as '{BCRYPT}'
+		    if (ulUtils::BeginsWith($salt, '{BCRYPT}'))
+			$salt = substr($salt, 8);
         
 			if ($salt == '') $salt = self::BCryptSalt();
 			return crypt(self::PreProcess($password),  $salt);

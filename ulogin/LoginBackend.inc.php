@@ -81,6 +81,31 @@ class ulLoginBackend
 	{
 		return ulLoginBackend::NOT_IMPLEMENTED;
 	}
+	
+	protected function KeyBlockExpires($kid, &$flagged)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * Same as UserBlocked, the only difference is that if the user is
+	 * not blocked and there was no error it returns false (rather than
+	 * DateTime)
+	 */
+	public function KeyBlocked($kid)
+	{
+		$flagged = false;
+		$expire = $this->KeyBlockExpires($kid, $flagged);
+		if (is_object($expire) && (get_class($expire) == 'DateTime'))	// make sure not an error code
+		{
+			if ($flagged && ($expire <= date_create('now')))
+			{
+				$this->BlockKey($kid, -1);
+				return false;
+			}
+		}
+		return $expire;
+	}
 
 	// Given the backend-specific unique identifier, returns
 	// a unique identifier that can be displayed to the user.

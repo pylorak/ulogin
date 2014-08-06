@@ -36,7 +36,7 @@ class ulPdoLoginBackend extends ulLoginBackend
 	 * for this key). false if they key does not exist...
 	 */
 	public function AuthenticateKey($key) {
-		$stmt = ulPdoDb::Prepare('auth','SELECT * FROM ul_apikeys WHERE key=?');
+		$stmt = ulPdoDb::Prepare('auth','SELECT * FROM ul_apikeys WHERE `key`=?');
 		if (!ulPdoDb::BindExec(
 			$stmt,
 			null,
@@ -44,12 +44,13 @@ class ulPdoLoginBackend extends ulLoginBackend
 				&$key, 'str'
 				)
 			))
-		{	
+		{
+			echo ulPdoDb::ErrorMsg();
 			ul_db_fail();
 			return ulLoginBackend::BACKEND_ERROR;
 		}
 
-		$row = $stmt->fetch();
+		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 		
 		if ($row == false) return false;
 		
@@ -63,55 +64,55 @@ class ulPdoLoginBackend extends ulLoginBackend
 	 * be specified
 	 */
 	public function CreateKey($uid, $type=0){
-		$now = ulUtils::nowstring();
-		$key = ulPassword::Hash("SmartNE".$now.$uid,UL_PWD_FUNC);
-// 		$past = date_format(date_create('1000 years ago'), UL_DATETIME_FORMAT);
-		$stmt = ulPdoDb::Prepare('update', 'INSERT INTO ul_apikeys (`uid`, `key`, `date_created`, `type`) VALUES (?, ?, ?, ?)');
-		if (!ulPdoDb::BindExec(
-			$stmt,
-			NULL,		// output
-			array(		// input
-				&$uid, 'int',
-				&$key, 'str',
-				&$now, 'str',
-				&$type, 'int'
-				)
-			))
+	    $now = ulUtils::nowstring();
+	    $key = ulPassword::Hash("SmartNE".$now.$uid,UL_PWD_FUNC);
+	    
+	    $stmt = ulPdoDb::Prepare('update', 'INSERT INTO ul_apikeys (`uid`, `key`, `date_created`, `type`) VALUES (?, ?, ?, ?)');
+	    if (!ulPdoDb::BindExec(
+		$stmt,
+		NULL,		// output
+		array(		// input
+		    &$uid, 'int',
+		    &$key, 'str',
+		    &$now, 'str',
+		    &$type, 'int'
+		    )
+		))
+	    {
+		if (ulPdoDb::ErrorCode() == '23000')
 		{
-			if (ulPdoDb::ErrorCode() == '23000')
-			{
-				// Probably, the user already exists
-				return ulLoginBackend::ALREADY_EXISTS;
-			}
-			else
-			{
-				// No, it wasn't a duplicate user... let's fail miserably.
-				return ulLoginBackend::BACKEND_ERROR;
-			}
+		    // Probably, the user already exists
+		    return ulLoginBackend::ALREADY_EXISTS;
 		}
+		else
+		{
+		    // No, it wasn't a duplicate user... let's fail miserably.
+		    return ulLoginBackend::BACKEND_ERROR;
+		}
+	}
 
-		return true;
+	    return true;
 	}
 	
 	public function DeleteKey($kid)
 	{
-		$stmt = ulPdoDb::Prepare('delete', 'DELETE FROM ul_apikeys WHERE id=?');
-		if (!ulPdoDb::BindExec(
-			$stmt,
-			NULL,		// output
-			array(		// input
-				&$kid, 'int'
-			)
-		))
-		{
-			ul_db_fail();
-			return ulLoginBackend::BACKEND_ERROR;
-		}
+	    $stmt = ulPdoDb::Prepare('delete', 'DELETE FROM ul_apikeys WHERE id=?');
+	    if (!ulPdoDb::BindExec(
+		$stmt,
+		NULL,		// output
+		array(		// input
+			&$kid, 'int'
+		)
+	    ))
+	    {
+		ul_db_fail();
+		return ulLoginBackend::BACKEND_ERROR;
+	    }
 
-		if ($stmt->rowCount() == 0)
-			return ulLoginBackend::NO_SUCH_USER;
+	    if ($stmt->rowCount() == 0)
+		return ulLoginBackend::NO_SUCH_USER;
 
-		return true;
+	    return true;
 	}
 	
 	public function BlockKey($kid, $block_secs)
@@ -157,6 +158,33 @@ class ulPdoLoginBackend extends ulLoginBackend
 
 		return true;
 	}
+	
+	protected function KeyBlockExpires($kid, &$flagged)
+	{
+		$expires = NULL;
+		$flagged = false;
+
+		$stmt = ulPdoDb::Prepare('auth', 'SELECT block_expires FROM ul_apikeys WHERE id=?');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			array(		// output
+				&$expires, 'str'
+			),
+			array(		// input
+				&$kid, 'int'
+			)
+		))
+		{
+			ul_db_fail();
+			return ulLoginBackend::BACKEND_ERROR;
+		}
+
+		if(!ulPdoDb::Fetch($stmt))
+			return ulLoginBackend::NO_SUCH_USER;
+
+
+		return new DateTime($expires);
+ 	}
 
 	// Tries to authenticate a user against the backend.
 	// Returns true is sccessfully authenticated,
