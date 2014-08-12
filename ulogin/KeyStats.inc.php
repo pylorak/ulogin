@@ -3,6 +3,8 @@
  * @file
  * TODO:
  * 
+ *  - Rename to KeyBlocker to match IpBlocker
+ * 
  * Contributors:
  *  - 07-08/2014 Harry Kaizen - Core Code (himion0@gmail.com)
  *  - Andreas Bontozoglou     - GitHub integration (bodozoglou@gmail.com)

@@ -1,3 +1,4 @@
+# CHANGELOG #
 
 * urban-1 (dev)
  - Added: Support for key-based (API) authentication on PDO backend
@@ -8,3 +9,11 @@
 	  priority over ulLoginBackend.
  - Added: Block/Delete Key functions where needed (PDO)
  - Added: Lazy log cleaning (when we authenticate a user) instead of cron job.
+ - Bug Fix: IsUserBlocked was not functioning. Changed UserBlockExpires PDO 
+          backend to public and fixed IsUserBlocked to compaire with time
+          
+
+# TODO LIST? #
+ - Get list of blocked IPs with datails
+ - Maybe have auth failure reason in uLogin (ie:UserBlocked, contact admin...)
+   This can also by an enum/const

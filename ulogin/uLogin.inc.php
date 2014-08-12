@@ -204,14 +204,15 @@ class uLogin
 	}
 
 	/**
-	 * Wrapper (to the backend) to authenticate by key
+	 * Wrapper (to the backend) to authenticate by key.
+	 * Returns TRUE or FALSE. The key row is stored in
+	 * AuthResult in case of success (to avoid a 2nd call)
 	 */
 	public function AuthenticateKey($key) {
 		$this->AuthResult = $this->Backend->AuthenticateKey($key);
 		if ($this->IsAuthSuccess())
 			return true;
 		return false;
-		
 	}
 
 	/**
@@ -406,7 +407,7 @@ class uLogin
 	// Returns false on error.
 	public function IsUserBlocked($uid)
 	{
-		return $this->Backend->UserBlocked($uid) == true;
+		return ($this->Backend->UserBlockExpires($uid)>new DateTime());
 	}
 
 	public function SetAutologin($username, $enable)

@@ -446,7 +446,7 @@ class ulPdoLoginBackend extends ulLoginBackend
 	// Can also return error codes.
 	// &$flagged is a boolean value which tells whether the user
 	// was flagged as blocked (no matter if the block expired).
-	protected function UserBlockExpires($uid, &$flagged)
+	public function UserBlockExpires($uid, &$flagged=false)
 	{
 		$expires = NULL;
 		$flagged = false;
