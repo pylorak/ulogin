@@ -260,7 +260,7 @@ define('UL_MAX_LOG_RECORDS', 200000);
 // and removes the requirement for cron job for cleaning.
 // A vaule of 10 means that 1 in 10 users will be slightly
 // delayed in order to clean up
-define('UL_LAZY_CLEAN_PROB',10);
+define('UL_LAZY_CLEAN_PROB',5);
 
 // Most recent time window to check for brute force
 // activity, in seconds.
