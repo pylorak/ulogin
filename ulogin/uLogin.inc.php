@@ -14,6 +14,7 @@ class uLogin
 
 	public function __construct($loginCallback=NULL ,$loginFailCallback=NULL, $backend=NULL)
 	{
+	
 		if ($backend == NULL)
 		{
 			$backend = UL_AUTH_BACKEND;
@@ -37,6 +38,29 @@ class uLogin
 		{
 			$this->AuthFail(NULL, NULL);
 		}
+
+		
+	}
+	
+	
+	// Lazy non-cron based cleaning!
+	protected function doLazyCleanUp(){
+	    
+	    if (UL_LAZY_CLEAN_PROB<=0) return;
+	    
+	    $rnd = rand(0,100);
+	    if ($rnd>UL_LAZY_CLEAN_PROB) return;
+	    
+	    // Limit size of log by cleaning it
+	    ulLog::Clean();
+
+	    // Clean up expired sessions of the default storage engine set in the configuration
+	    $SessionStoreClass = UL_SESSION_BACKEND;
+	    $SessionStore = new $SessionStoreClass();
+	    $SessionStore->gc();
+
+	    // Remove expired nonces
+	    ulPdoNonceStore::Clean();
 	}
 
 	private static function ValidateUsername($str)
@@ -254,6 +278,7 @@ class uLogin
 	// as if the login information was incorrect.
 	public function Authenticate($username, $password)
 	{
+		$this->doLazyCleanUp();
 		$start = microtime(true);
 		$ret = $this->Authenticate2($username, $password);
 		$total = microtime(true) - $start;

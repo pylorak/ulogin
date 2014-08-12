@@ -7,3 +7,4 @@
  - Added: Magic method __call implementation on ulLogin. ulLogin methods have 
 	  priority over ulLoginBackend.
  - Added: Block/Delete Key functions where needed (PDO)
+ - Added: Lazy log cleaning (when we authenticate a user) instead of cron job.

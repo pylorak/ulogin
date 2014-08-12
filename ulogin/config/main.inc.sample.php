@@ -254,6 +254,14 @@ define('UL_MAX_LOG_AGE', 5356800);
 // a clean is performed.
 define('UL_MAX_LOG_RECORDS', 200000);
 
+// Used for lazy record cleaning. Give a value 0-100,
+// where 0 disables cleaning and 100 cleans on every 
+// request. This is done when a user is authenticated
+// and removes the requirement for cron job for cleaning.
+// A vaule of 10 means that 1 in 10 users will be slightly
+// delayed in order to clean up
+define('UL_LAZY_CLEAN_PROB',10);
+
 // Most recent time window to check for brute force
 // activity, in seconds.
 define('UL_BF_WINDOW', 300);
