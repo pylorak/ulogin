@@ -12,51 +12,67 @@
  */
 require_once(UL_INC_DIR.'/config/all.inc.php');
 
-class KeyStats {
-	//Stats variables:
+class ulKeyStats {
+	// Stats variables
 	public $hitpersec;
-	private $hitsperwindow;
+	public $hitsperwindow;
 
-	//Table variables: 
-	public $key;
-	public $row;
-	public $count;
-
-	private $isBlocked;
-
-	//Time intervals: 
+	// Key shortcut variables
+	protected $key;
+	protected $id;
+	protected $row;
+	protected $count;
+	
+	// Cache some vars
+	// Now
+	private $now;
+	private $nowstr;
+	// Stats reset as DateTime
+	private $stats_reset;
+	// Last Update timestamp
 	private $tsupdate;
+	// Time interval Since reset
 	private $tsreset;
+	
+	// True is stats blocked the key
+	private $blockedStats=false;
 
 	
 	function __construct($AuthResult) {
 		error_log("---------------------------------------------------");
-		//Key Requested:
+		// Key Requested:
 		$this->key = &$AuthResult['key'];
-		//Entire row inside the database:
+		$this->id  = &$AuthResult['id'];
+		
+		// Entire row inside the database:
 		$this->row = $AuthResult;
 
 		//Initialise time since last reset:
-		$now = new DateTime($this::nowstring());
-		$stats_reset = new DateTime($this->row['stats_reset']);
-		$this->tsreset = $this->mdiff($now, $stats_reset);
+		$this->nowstr = self::nowstring();
+		$this->now = new DateTime($this->nowstr);
+		$this->stats_reset = new DateTime($this->row['stats_reset']);
+		$this->tsupdate = new DateTime($this->row['tstamp']);
+		$this->tsreset = $this->mdiff($this->now, $this->stats_reset);
+		
+		$this->count = $this->row['count'];
 
 		//Is it time to reset?
-		if ($this->tsreset>SNE_WINDOW) $this->resetstats();
+		if ($this->tsreset > KEY_WINDOW || $this->row['stats_reset']=="") $this->ResetStats();
 
-		$this->inkcount();
-		$this->updatestats();
+		$this->InkCount();
+		$this->UpdateStats();
 
 		//Should the key be blocked or given access? 13/75
-		if ($this->causingproblem()) {
-			error_log("Blocked: [". $this->key."]");
-			$this->inkblockcount();
-			$this->allowedaccess(false);
-			//Implement mail feature here:		
-			// $this->sendmail();
+		if ($this->CausingProblem()) {
+		    $this->blockedStats=true;
+		    error_log("Blocked: [". $this->id."]");
+		    $this->InkBlockCount();
+// 			$this->AllowedAccess(false);
+		    //Implement mail feature here:		
+		    // $this->sendmail();
 		} else {
-			error_log("Authorised: [". $this->key."]");
-			$this->allowedaccess(true);
+		    error_log("Authorised: [". $this->id."]");
+// 			$this->AllowedAccess(true);
 		}
 	}
 
@@ -66,25 +82,23 @@ class KeyStats {
 	//Check to see if the counter in the php variable is incremented
 	//with the variable from the database and that they are both the
 	//same 
-	public function inkcount() {
-		$this->tsupdate = new DateTime($this->row['tstamp']);
-		$now = new DateTime($this::nowstring());
-		$this->tsupdate = $this->mdiff($now, $this->tsupdate);
-		$now = $this::nowstring();
+	//
+	//TODO: Use ID in WHERE condition
+	public function InkCount() {
 
-		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET count=count+1, tstamp=? WHERE key=?');
-		if (!ulPdoDb::BindExec($stmt, null, array(&$now, 'str', &$this->key, 'str'))) {
+		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET count=count+1, tstamp=? WHERE id=?');
+		if (!ulPdoDb::BindExec($stmt, null, array(&$this->nowstr, 'str', &$this->id, 'str'))) {
 			ul_db_fail();
 			return $err;
 		}
-		echo $this->count;
+		$this->count++;
 	}
 
 	//Increments the blockedcount which is the number times the api key
 	//has been hit from when it was blocked:
-	public function inkblockcount() {
-		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET blockedcount=blockedcount+1 WHERE key=?');
-		if (!ulPdoDb::BindExec($stmt, NULL, array(&$this->key, 'str'))) {
+	public function InkBlockCount() {
+		$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET blockedcount=blockedcount+1 WHERE id=?');
+		if (!ulPdoDb::BindExec($stmt, NULL, array(&$this->id, 'str'))) {
 			ul_db_fail();
 			return $err;
 		}
@@ -92,15 +106,12 @@ class KeyStats {
 
 	//Calculates the average interval of hits onto this api key since the last stats
 	//reset. (VOID)
-	function updatestats() {
-		$this->stats_reset = new DateTime($this->row['stats_reset']);
-		$this->count = $this->row['count'];
-		$now = new DateTime($this::nowstring());
-		$this->hitpersec = $this->count/$this->mdiff($now, $this->stats_reset);
+	function UpdateStats() {
+		$this->hitpersec = $this->count/$this->tsreset;
 		$this->hitsperwindow = $this->count;
 
 		//Logging to the terminal:
-		error_log("Time since statsreset: ".$this->mdiff($now, $this->stats_reset));
+		error_log("Time since statsreset: ".$this->tsreset);
 		error_log("Hit per second: ".$this->hitpersec);
 		error_log("Hit per window: ".$this->hitsperwindow);
 		error_log("|Count: ".$this->count."|Blocked Count:".$this->row['blockedcount']."|");
@@ -109,38 +120,38 @@ class KeyStats {
 	//If any of these conditions are true, the much will return true 
 	//e.g. hitpersec<1 => The time interval beween hits has averaged to be less than 1
 	//since the last stats reset. 
-	function causingproblem() {
+	function CausingProblem() {
 		//Conditions Array:
-		$conditions = array($this->hitpersec>MAX_RS,
-			$this->hitsperwindow>MAX_RI
+		$conditions = array(
+			$this->hitpersec    > MAX_RS,  // Req/Second
+			$this->hitsperwindow> MAX_RI   // Req/Interval
 			/*[Insert another condition]*/
 			);
 
 		for ($i = 0; $i < count($conditions); $i++) {
 			if ($conditions[$i]) return true;
 		}
+		
+		return false;
 	}
 
 	//Resets the counter for the requested API key to 0 and changes the value for 
 	//reset_stats in the table to the current time. 
-	public function resetstats() {
-		$now = $this::nowstring();
+	public function ResetStats() {
+		error_log("RESET");
 		//The count will be reset to 0 if the users has not been blocked
 		//otherwise the count = blockcount * TransferPenalty
-		$blockedcount = $this->row['blockedcount']*TRANSFERPENALTY;
+		$blockedcount = $this->row['blockedcount']*TRANSFER_PENALTY;
 
 		//Query
-		$stmt = ulPdoDb::Prepare('update','UPDATE ul_apikeys SET blockedcount=0, count=?, stats_reset=?, tstamp=? WHERE key=?');
+		$stmt = ulPdoDb::Prepare('update','UPDATE ul_apikeys SET blockedcount=0, count=?, stats_reset=?, tstamp=? WHERE id=?');
 		$d = $this::nowstring();
-		if (!ulPdoDb::BindExec($stmt, NULL, array(&$blockedcount, 'int', &$d, 'str', &$now, 'str', &$this->key, 'str'))) {
+		if (!ulPdoDb::BindExec($stmt, NULL, array(&$blockedcount, 'int', &$d, 'str', &$this->nowstr, 'str', &$this->id, 'str'))) {
 			ul_db_fail();
 			//Query failed  q
 			return ulLoginBackend::BACKEND_ERROR;
 		}
-		$this->row['statsreset'] = $now;
-		$this->row['counts'] = $blockedcount; 
-		$this->row['blockedcount'] = 0;
-		$this->row['tstamp'] = $now;
+		$this->count = $blockedcount; 
 	}
 
 	//Returns the time and date now including microseconds:
@@ -150,7 +161,7 @@ class KeyStats {
 	}
 
 	//Inserts a table of DB values of the api key
-	function allowedaccess($allowed) {
+	function AllowedAccess($allowed) {
 		$keys = array_keys($this->row);
 		if ($allowed) echo "<h1>Key Authorised!</h1>";
 		else echo "<h1>Key Blocked!</h1>";
@@ -189,6 +200,13 @@ class KeyStats {
 		//Creates the variable that will hold the seconds (?):
 		$difference = $secdiff.".".$microdiff;
 		return $difference;
+	}
+	
+	// Return true if the key is blocked by stats
+	// Higher level framework may decide to allow
+	// (or ignore) that
+	public function isBlockedByStats(){
+	    return $this->blockedStats;
 	}
 }
 ?>
