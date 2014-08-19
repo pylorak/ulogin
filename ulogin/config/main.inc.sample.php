@@ -13,7 +13,7 @@ define('UL_DOMAIN', 'subdomain.your_domain.tld');
 
 // Set to the path of the "ulogin" directory containing the source files.
 // Do not use a trailing slash.
-define('UL_INC_DIR', 'ulogin');
+define('UL_INC_DIR', dirname(dirname(__FILE__)));
 
 // A random string. Make it as random as possible and keep it secure.
 // This is a crypthographic key that uLogin will use to generate some data
