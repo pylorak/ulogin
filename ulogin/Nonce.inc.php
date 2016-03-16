@@ -16,6 +16,7 @@ class ulNonce
 
 		$nonces[$action] = $newnonce;
 		$_SESSION['ulNonces'] = $nonces;
+		
 		return true;
 	}
 	private static function StorePersistent($action, $code, $expire)
@@ -25,6 +26,7 @@ class ulNonce
 
 	private static function VerifyVolatile($action, $code)
 	{
+
 		if (!self::ExistsVolatile($action))
 			return false;
 
@@ -57,7 +59,7 @@ class ulNonce
 			return false;
 
 		$nonces = $_SESSION['ulNonces'];
-
+		
 		// Do we have a nonce for this action?
 		if (!isset($nonces[$action]))
 			return false;
@@ -107,7 +109,7 @@ class ulNonce
 	{
 		$code = ulUtils::RandomBytes(16, true);
 		$hashed_code = hash(UL_HMAC_FUNC, $code);
-
+		
 		if ($persistent === true)
 			self::StorePersistent($action, $hashed_code, $expire);
 		else

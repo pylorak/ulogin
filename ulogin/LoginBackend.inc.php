@@ -1,4 +1,14 @@
 <?php
+/**
+ * @file
+ * 
+ * Contributors:
+ *  - Harry Kaizen 07-08/2014
+ *  - Andreas Bontozoglou (bodozoglou@gmail.com)
+ * 
+ * Should this class be abstract? (harder to expand/add methods)
+ * 
+ */
 
 class ulLoginBackend
 {
@@ -37,6 +47,64 @@ class ulLoginBackend
 	public function Authenticate($uid, $pass)
 	{
 		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * AuthenticateKey to support key-based auth 
+	 * in the backend
+	 */
+	public function AuthenticateKey($key)
+	{
+		return false;
+	}
+
+	/**
+	 * Create a new key for the given user
+	 */
+	public function CreateKey($uid, $type=0)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * Delete a key
+	 */
+	public function DeleteKey($kid)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * Block a key for a specific time
+	 */ 
+	public function BlockKey($kid, $block_secs)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	protected function KeyBlockExpires($kid, &$flagged)
+	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+	
+	/**
+	 * Same as UserBlocked, the only difference is that if the user is
+	 * not blocked and there was no error it returns false (rather than
+	 * DateTime)
+	 */
+	public function KeyBlocked($kid)
+	{
+		$flagged = false;
+		$expire = $this->KeyBlockExpires($kid, $flagged);
+		if (is_object($expire) && (get_class($expire) == 'DateTime'))	// make sure not an error code
+		{
+			if ($flagged && ($expire <= date_create('now')))
+			{
+				$this->BlockKey($kid, -1);
+				return false;
+			}
+		}
+		return $expire;
 	}
 
 	// Given the backend-specific unique identifier, returns
@@ -122,6 +190,20 @@ class ulLoginBackend
 	// was flagged as blocked (no matter if the block expired).
 	protected function UserBlockExpires($uid, &$flagged)
 	{
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+
+	/**
+	 * Return an array of username/id pairs
+	 */
+	public function GetAllUsers(){
+		return ulLoginBackend::NOT_IMPLEMENTED;
+	}
+
+	/**
+	 * Get all keys for a user. 
+	 */
+	public function GetKeysForUser($uid=-1) {
 		return ulLoginBackend::NOT_IMPLEMENTED;
 	}
 

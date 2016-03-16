@@ -14,6 +14,7 @@ class uLogin
 
 	public function __construct($loginCallback=NULL ,$loginFailCallback=NULL, $backend=NULL)
 	{
+	
 		if ($backend == NULL)
 		{
 			$backend = UL_AUTH_BACKEND;
@@ -37,6 +38,29 @@ class uLogin
 		{
 			$this->AuthFail(NULL, NULL);
 		}
+
+		
+	}
+	
+	
+	// Lazy non-cron based cleaning!
+	protected function doLazyCleanUp(){
+	    
+	    if (UL_LAZY_CLEAN_PROB<=0) return;
+	    
+	    $rnd = rand(0,100);
+	    if ($rnd>UL_LAZY_CLEAN_PROB) return;
+	    
+	    // Limit size of log by cleaning it
+	    ulLog::Clean();
+
+	    // Clean up expired sessions of the default storage engine set in the configuration
+	    $SessionStoreClass = UL_SESSION_BACKEND;
+	    $SessionStore = new $SessionStoreClass();
+	    $SessionStore->gc();
+
+	    // Remove expired nonces
+	    ulPdoNonceStore::Clean();
 	}
 
 	private static function ValidateUsername($str)
@@ -179,6 +203,30 @@ class uLogin
 		return true;
 	}
 
+	/**
+	 * Wrapper (to the backend) to authenticate by key.
+	 * Returns TRUE or FALSE. The key row is stored in
+	 * AuthResult in case of success (to avoid a 2nd call)
+	 */
+	public function AuthenticateKey($key) {
+		$this->AuthResult = $this->Backend->AuthenticateKey($key);
+		if ($this->IsAuthSuccess())
+			return true;
+		return false;
+	}
+
+	/**
+	 * Create new Key for a given user id
+	 */
+	public function CreateKey($uid, $type=0){
+		$ret = $this->Backend->CreateKey($uid, $type);
+		var_dump(ulPdoDb::ErrorMsg());
+		if ($ret !== true) return false;
+
+		ulLog::Log("created api key", $uid, ulUtils::GetRemoteIP(false));
+		return true;
+	}
+
 	// Given a uid and a password, this function returns the uid,
 	// if all of the following conditions are met:
 	// - specified user has the specified password
@@ -231,6 +279,7 @@ class uLogin
 	// as if the login information was incorrect.
 	public function Authenticate($username, $password)
 	{
+		$this->doLazyCleanUp();
 		$start = microtime(true);
 		$ret = $this->Authenticate2($username, $password);
 		$total = microtime(true) - $start;
@@ -290,9 +339,9 @@ class uLogin
 
 	// Creates a new user in the database.
 	// Returns true if successful, false if the user already exists or inputs are
-  // invalid, NULL on other errors.
-  // $profile, if supplied, contains backend-specific data to be inserted, where
-  // backend is supposed to simultanously contain login and profile information (eg. LDAP.)
+	// invalid, NULL on other errors.
+	// $profile, if supplied, contains backend-specific data to be inserted, where
+	// backend is supposed to simultanously contain login and profile information (eg. LDAP.)
 	public function CreateUser($username, $password, $profile=NULL)
 	{
 		// Validate user input
@@ -358,7 +407,7 @@ class uLogin
 	// Returns false on error.
 	public function IsUserBlocked($uid)
 	{
-		return $this->Backend->UserBlocked($uid) == true;
+		return ($this->Backend->UserBlockExpires($uid)>new DateTime());
 	}
 
 	public function SetAutologin($username, $enable)
@@ -470,6 +519,27 @@ class uLogin
 
 		return $uid;
 	}
+
+	
+	/**
+	 * Instead of wrapping backend methods...
+	 */
+	 public function __call($method, $arguments)
+	{
+	    // If we have it call it!
+	    if (method_exists($this,$method)) {
+		return call_user_func_array(array($this,$method), $arguments);
+	    }
+	    
+	    if (method_exists($this->Backend,$method)) {
+		return call_user_func_array(array($this->Backend, $method),$arguments);
+	    }
+	    
+	    return ulLoginBackend::NOT_IMPLEMENTED;
+	    
+	}
+
 }
 
 ?>
+

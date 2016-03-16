@@ -29,6 +29,163 @@ class ulPdoLoginBackend extends ulLoginBackend
 		return true;
 	}
 
+	/**
+	 * Authenticate based on key. 
+	 * 
+	 * @return: The key entry from the database (including some basic statistics
+	 * for this key). false if they key does not exist...
+	 */
+	public function AuthenticateKey($key) {
+		$stmt = ulPdoDb::Prepare('auth','SELECT * FROM ul_apikeys WHERE `key`=?');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			null,
+			array(		// input
+				&$key, 'str'
+				)
+			))
+		{
+			echo ulPdoDb::ErrorMsg();
+			ul_db_fail();
+			return ulLoginBackend::BACKEND_ERROR;
+		}
+
+		$row = $stmt->fetch(PDO::FETCH_ASSOC);
+		
+		if ($row == false) return false;
+		
+		$this->AuthResult = $row;
+		return $row;
+		
+	}
+	
+	/**
+	 * Create new key for a given user id. The key type can also 
+	 * be specified
+	 */
+	public function CreateKey($uid, $type=0){
+	    $now = ulUtils::nowstring();
+	    $key = ulPassword::Hash("SmartNE".$now.$uid,UL_PWD_FUNC);
+	    
+	    $stmt = ulPdoDb::Prepare('update', 'INSERT INTO ul_apikeys (`uid`, `key`, `date_created`, `type`) VALUES (?, ?, ?, ?)');
+	    if (!ulPdoDb::BindExec(
+		$stmt,
+		NULL,		// output
+		array(		// input
+		    &$uid, 'int',
+		    &$key, 'str',
+		    &$now, 'str',
+		    &$type, 'int'
+		    )
+		))
+	    {
+		if (ulPdoDb::ErrorCode() == '23000')
+		{
+		    // Probably, the user already exists
+		    return ulLoginBackend::ALREADY_EXISTS;
+		}
+		else
+		{
+		    // No, it wasn't a duplicate user... let's fail miserably.
+		    return ulLoginBackend::BACKEND_ERROR;
+		}
+	}
+
+	    return true;
+	}
+	
+	public function DeleteKey($kid)
+	{
+	    $stmt = ulPdoDb::Prepare('delete', 'DELETE FROM ul_apikeys WHERE id=?');
+	    if (!ulPdoDb::BindExec(
+		$stmt,
+		NULL,		// output
+		array(		// input
+			&$kid, 'int'
+		)
+	    ))
+	    {
+		ul_db_fail();
+		return ulLoginBackend::BACKEND_ERROR;
+	    }
+
+	    if ($stmt->rowCount() == 0)
+		return ulLoginBackend::NO_SUCH_USER;
+
+	    return true;
+	}
+	
+	public function BlockKey($kid, $block_secs)
+	{
+		$stmt = NULL;
+		$query_ret = true;
+
+		if ($block_secs > 0)
+		{
+			$block_expires = ulUtils::date_seconds_add(new DateTime(), $block_secs)->format(UL_DATETIME_FORMAT);
+			$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET block_expires=? WHERE id=?');
+			$query_ret = ulPdoDb::BindExec(
+				$stmt,
+				NULL,		// output
+				array(		// input
+					&$block_expires, 'str',
+					&$kid, 'int'
+				)
+			);
+		}
+		else
+		{
+			$past = date_format(date_create('1000 years ago'), UL_DATETIME_FORMAT);
+			$stmt = ulPdoDb::Prepare('update', 'UPDATE ul_apikeys SET block_expires=?  WHERE id=?');
+			$query_ret = ulPdoDb::BindExec(
+				$stmt,
+				NULL,		// output
+				array(		// input
+					&$past, 'str',
+					&$kid, 'int'
+				)
+			);
+		}
+
+		if ($query_ret === false)
+		{
+			ul_db_fail();
+			return ulLoginBackend::BACKEND_ERROR;
+		}
+
+		if ($stmt->rowCount()==0)
+			return ulLoginBackend::NO_SUCH_USER;
+
+		return true;
+	}
+	
+	protected function KeyBlockExpires($kid, &$flagged)
+	{
+		$expires = NULL;
+		$flagged = false;
+
+		$stmt = ulPdoDb::Prepare('auth', 'SELECT block_expires FROM ul_apikeys WHERE id=?');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			array(		// output
+				&$expires, 'str'
+			),
+			array(		// input
+				&$kid, 'int'
+			)
+		))
+		{
+			ul_db_fail();
+			return ulLoginBackend::BACKEND_ERROR;
+		}
+
+		if(!ulPdoDb::Fetch($stmt))
+			return ulLoginBackend::NO_SUCH_USER;
+
+
+		return new DateTime($expires);
+ 	}
+
 	// Tries to authenticate a user against the backend.
 	// Returns true is sccessfully authenticated,
 	// or an error code otherwise.
@@ -289,7 +446,7 @@ class ulPdoLoginBackend extends ulLoginBackend
 	// Can also return error codes.
 	// &$flagged is a boolean value which tells whether the user
 	// was flagged as blocked (no matter if the block expired).
-	protected function UserBlockExpires($uid, &$flagged)
+	public function UserBlockExpires($uid, &$flagged=false)
 	{
 		$expires = NULL;
 		$flagged = false;
@@ -315,6 +472,55 @@ class ulPdoLoginBackend extends ulLoginBackend
 
 		return new DateTime($expires);
  	}
+
+	/**
+	 * Return an array of username/id pairs
+	 */
+	public function GetAllUsers(){
+		$uid   = -1;
+		$uname = "";
+		$stmt = ulPdoDb::Prepare('auth', 'SELECT username,id FROM ul_logins');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			array(		// output
+				&$uname, 'str',
+				&$uid, 'int'
+			),
+			null
+		))
+		{
+			ul_db_fail();
+			return false;
+		}
+		
+		// Assoc fetch seems better here
+		$res = array();
+		while (($it=$stmt->fetch(PDO::FETCH_ASSOC))){
+		    $res[]=$it;
+		}
+		return $res;
+	}
+
+	public function GetKeysForUser($uid=-1){
+		if ($uid==-1) return array();
+		$stmt = ulPdoDb::Prepare('auth', 'SELECT * FROM ul_apikeys WHERE uid=?');
+		if (!ulPdoDb::BindExec(
+			$stmt,
+			null,			// out
+			array(&$uid, 'int')	// in
+		))
+		{
+			ul_db_fail();
+			return false;
+		}
+		
+		// Assoc fetch seems better here
+		$res = array();
+		while (($it=$stmt->fetch(PDO::FETCH_ASSOC))){
+		    $res[]=$it;
+		}
+		return $res;
+	}
 }
 
 ?>

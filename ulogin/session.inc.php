@@ -66,23 +66,29 @@ class ulSessionManager
 		self::EnsureStorage();
 
 		// Set session cookie options
-		session_name('SSESID');
+		// - Urban: At this point, having session.auto_start in php.ini 
+		// breaks the session...
+		// - Urban: Had issue with cookie path. localhost in main.inc.php
+		// always work
+		if (ini_get("session.auto_start")=="0"){
+		    session_name('SSESID');
+		}
 		session_set_cookie_params(0, '/', (UL_DOMAIN === 'localhost') ? '' : UL_DOMAIN, ulUtils::IsHTTPS(), true);
 		session_start();
 	}
 
-  private static function tryFingerprint()
-  {
-    static $fp = null;
-    if ($fp == NULL)
-    {
-      $fp = array();
-      $fp['IPaddress']  = UL_SESSION_CHECK_IP ? ulUtils::GetRemoteIP(false) : '';
-      $fp['hostDomain'] = !UL_SESSION_CHECK_REFERER || empty($_SERVER['HTTP_REFERER']) ? '' : parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
-      $fp['userAgent']  = empty($_SERVER['HTTP_USER_AGENT']) ? '' : $_SERVER['HTTP_USER_AGENT'];
-    }
-    return $fp;
-  }
+	private static function tryFingerprint()
+	{
+	    static $fp = null;
+	    if ($fp == NULL)
+	    {
+		$fp = array();
+		$fp['IPaddress']  = UL_SESSION_CHECK_IP ? ulUtils::GetRemoteIP(false) : '';
+		$fp['hostDomain'] = !UL_SESSION_CHECK_REFERER || empty($_SERVER['HTTP_REFERER']) ? '' : parse_url($_SERVER['HTTP_REFERER'], PHP_URL_HOST);
+		$fp['userAgent']  = empty($_SERVER['HTTP_USER_AGENT']) ? '' : $_SERVER['HTTP_USER_AGENT'];
+	    }
+	    return $fp;
+	}
 
 	/**
 	 * This function starts or continues a secure session.
@@ -96,57 +102,65 @@ class ulSessionManager
 	 */
 	public static function sessionStart($sid_regen_prob)
 	{
-    // Used as a temporary storage to be able to keep some session data
-    // even when the session gets invalidated.
-    static $TmpNonSensitiveData = NULL;
+	    // Used as a temporary storage to be able to keep some session data
+	    // even when the session gets invalidated.
+	    static $TmpNonSensitiveData = NULL;
 
-    // Start a PHP session. After this call session data is available.
-		self::_sessionStart();
+	    // Start a PHP session. After this call session data is available.
+	    self::_sessionStart();
+	    
+	    ulLog::DebugLog('isNew: '.((self::isNewSession())?1:0), 0);
+	    if (self::isNewSession())	// Are we just starting a new session?
+	    {
+		ulLog::DebugLog('Starting a new uLogin session.', 0);
+/*		
+		// Reset session data and regenerate id
+		// Urban: This seems to invalidate/empty the session ???
+		self::changeSessionId(true, true);
+		
+		$_SESSION = array();
+		$_SESSION['sses'] = self::tryFingerprint();
+		// Play back data we want kept from a previously invalidated session
+		if ($TmpNonSensitiveData != NULL)
+		    $_SESSION['nonsensitive'] = $TmpNonSensitiveData;*/
+		    
+// 		session_regenerate_id(true);
+// 		$newSession = session_id();
+// 		session_write_close();
+// 		session_start();
+// 		session_id($newSession);
+	    }
+	    // Make sure the session hasn't expired or been hijacked, and destroy it if it has
+	    else if(self::validateSession())
+	    {
+		ulLog::DebugLog('Continuing an existing uLogin session.', 0);
 
-		if (self::isNewSession())	// Are we just starting a new session?
+		// Give a chance of the session id changing on any request
+		if(rand(1, 100) <= $sid_regen_prob)
 		{
-      ulLog::DebugLog('Starting a new uLogin session.', 0);
-
-      // Reset session data and regenerate id
-			self::changeSessionId(true, true);
-			$_SESSION = array();
-			$_SESSION['sses'] = self::tryFingerprint();
-
-      // Play back data we want kept from a previously invalidated session
-      if ($TmpNonSensitiveData != NULL)
-        $_SESSION['nonsensitive'] = $TmpNonSensitiveData;
+		    ulLog::DebugLog('Probability for automatic SID change reached.', 0);
+			self::changeSessionId(true, false);
 		}
-		// Make sure the session hasn't expired or been hijacked, and destroy it if it has
-		else if(self::validateSession())
-		{
-      ulLog::DebugLog('Continuing an existing uLogin session.', 0);
+	    }
+	    else
+	    {
+		ulLog::DebugLog('Session validation failed.', 4);
 
-			// Give a chance of the session id changing on any request
-			if(rand(1, 100) <= $sid_regen_prob)
-			{
-        ulLog::DebugLog('Probability for automatic SID change reached.', 0);
-				self::changeSessionId(true, false);
-			}
-		}
-		else
-		{
-      ulLog::DebugLog('Session validation failed.', 4);
+		// Keep a small part of the session data even in case the session gets invalidated.
+		if (isset($_SESSION['nonsensitive']))
+		    $TmpNonSensitiveData = $_SESSION['nonsensitive'];
 
-      // Keep a small part of the session data even in case the session gets invalidated.
-      if (isset($_SESSION['nonsensitive']))
-        $TmpNonSensitiveData = $_SESSION['nonsensitive'];
+		// Destroy previous session
+		self::$TrustInvalidated = true;
+		self::sessionDestroy();
+		return false;
+	    }
 
-      // Destroy previous session
-      self::$TrustInvalidated = true;
-      self::sessionDestroy();
-      return false;
-		}
+	    self::sessionSetExpiry();
+	    self::updateTokenCookie();
+	    self::$SessionRunning = true;
 
-		self::sessionSetExpiry();
-		self::updateTokenCookie();
-		self::$SessionRunning = true;
-
-		return true;
+	    return true;
 	}
 
 	private static function updateTokenCookie()
@@ -169,7 +183,7 @@ class ulSessionManager
 
 		if (!isset($_COOKIE[$cookieName]))
 			return false;
-  	$cookieData = $_COOKIE[$cookieName];
+		$cookieData = $_COOKIE[$cookieName];
 
 		return ulNonce::Verify('ulSessionToken', $cookieData);
 	}
@@ -195,10 +209,11 @@ class ulSessionManager
 
 	public static function sessionDestroy()
 	{
-    ulLog::DebugLog('Destroying session data.', 1);
+		ulLog::DebugLog('Destroying session data.', 1);
 
-    $_SESSION = array();
-    setcookie(session_name(), '', time() - 42000, '/', (UL_DOMAIN === 'localhost') ? '' : UL_DOMAIN, ulUtils::IsHTTPS(), true);
+		$_SESSION = array();
+		setcookie(session_name(), '', time() - 42000, '/', 
+			    (UL_DOMAIN === 'localhost') ? '' : UL_DOMAIN, ulUtils::IsHTTPS(), true);
 		session_destroy();
 		self::$SessionStore = NULL;
 		self::$SessionRunning = false;
@@ -210,12 +225,12 @@ class ulSessionManager
 	 */
 	public static function changeSessionId($delete_old_session = false, $delete_old_immediately = true)
 	{
-    ulLog::DebugLog('Changing session id.', 1);
+		ulLog::DebugLog('Changing session id.', 1);
 
-    // If this session is obsolete it means there is already a new id
+		// If this session is obsolete it means there is already a new id
 		if(@$_SESSION['sses']['OBSOLETE'] == true)
 			return;
-
+		
 		if ($delete_old_session)
 		{
 			// Set current session to expire in 10 seconds
@@ -228,7 +243,8 @@ class ulSessionManager
 
 		// Grab current session ID and close both sessions to allow other scripts to use them
 		$newSession = session_id();
-    self::sessionWriteClose();
+		ulLog::DebugLog('New ID '.$newSession, 1);
+		self::sessionWriteClose();
 
 		// Set session ID to the new one, and start it back up again
 		session_id($newSession);
@@ -274,10 +290,10 @@ class ulSessionManager
 	 */
 	private static function isNewSession()
 	{
-    if (!isset($_SESSION['sses']))
-      return true;
+		if (!isset($_SESSION['sses']))
+		return true;
 
-    $sses = $_SESSION['sses'];
+		$sses = $_SESSION['sses'];
 
 		if(!isset($sses['IPaddress']) || !isset($sses['userAgent']) || !isset($sses['hostDomain']))
 			return true;
@@ -293,47 +309,47 @@ class ulSessionManager
 	 */
 	private static function preventHijacking()
 	{
-    $fp = self::tryFingerprint();
-    $sses = $_SESSION['sses'];
+		$fp = self::tryFingerprint();
+		$sses = $_SESSION['sses'];
 
 		// Check for changed user agent, but make special exception for IE
 		if( $sses['userAgent'] != $fp['userAgent']
 			&& !( (strpos($sses['userAgent'], 'Trident') !== false)  &&  (strpos($fp['userAgent'], 'Trident') !== false))
 		  )
 		{
-      ulLog::DebugLog('User agent mismatch.', 3);
+		    ulLog::DebugLog('User agent mismatch.', 3);
 			return false;
 		}
 
 		// Check for changed referrer domain
-    if (UL_SESSION_CHECK_REFERER)
-    {
-      if (!empty($sses['hostDomain']) && ($sses['hostDomain'] != $fp['hostDomain']))
-      {
-        ulLog::DebugLog('HTTP_REFERER mismatch.', 3);
-        return false;
-      }
-    }
+		if (UL_SESSION_CHECK_REFERER)
+		{
+		    if (!empty($sses['hostDomain']) && ($sses['hostDomain'] != $fp['hostDomain']))
+		    {
+			ulLog::DebugLog('HTTP_REFERER mismatch.', 3);
+			return false;
+		    }
+		}
 
 		// Check for changed IP, but take proxies into consideration
-    if (UL_SESSION_CHECK_IP)
-    {
-      $sessionIpSegment = substr($sses['IPaddress'], 0, 7);
-      $remoteIpSegment = substr($fp['IPaddress'], 0, 7);
-      if($sses['IPaddress'] != $fp['IPaddress']
-        && !(in_array($sessionIpSegment, self::$aolProxies) && in_array($remoteIpSegment, self::$aolProxies)))
-      {
-        ulLog::DebugLog('IP mismatch.', 3);
-        return false;
-      }
-    }
+		if (UL_SESSION_CHECK_IP)
+		{
+		    $sessionIpSegment = substr($sses['IPaddress'], 0, 7);
+		    $remoteIpSegment = substr($fp['IPaddress'], 0, 7);
+		    if($sses['IPaddress'] != $fp['IPaddress']
+			&& !(in_array($sessionIpSegment, self::$aolProxies) && in_array($remoteIpSegment, self::$aolProxies)))
+		    {
+			ulLog::DebugLog('IP mismatch.', 3);
+			return false;
+		    }
+		}
 
 		// Check for secret token
 		if (!self::verifyTokenCookie())
-    {
-      ulLog::DebugLog('Session token mismatch.', 3);
+		{
+			ulLog::DebugLog('Session token mismatch.', 3);
 			return false;
-    }
+		}
 
 		return true;
 	}
@@ -341,7 +357,7 @@ class ulSessionManager
 	public static function sessionWriteClose()
 	{
 		session_write_close();
-    self::$SessionStore = NULL;
+		self::$SessionStore = NULL;
 		self::$SessionRunning = false;
 	}
 
@@ -359,8 +375,8 @@ class ulSessionManager
 // started with sses_start().
 function sses_destroy()
 {
-  ulLog::DebugLog('Session erase requested by host.', 0);
-	ulSessionManager::sessionDestroy();
+    ulLog::DebugLog('Session erase requested by host.', 0);
+    ulSessionManager::sessionDestroy();
 }
 
 // Use instead of session_start() to start a secure session.
@@ -369,12 +385,13 @@ function sses_start($sid_regen_prob=UL_SESSION_REGEN_PROB)
   ulLog::DebugLog('Session start requested by host.', 0);
 	if (!ulSessionManager::sessionStart($sid_regen_prob))
 	{
-    // ulSessionManager::sessionStart does not start a new session
-    // if it invalidated an old one. So we call it one more time
-    // to actually try to start a new session.
+		ulLog::DebugLog('Cannot start uLogin session. (1st time)', 5);
+		// ulSessionManager::sessionStart does not start a new session
+		// if it invalidated an old one. So we call it one more time
+		// to actually try to start a new session.
 		if (!(ulSessionManager::sessionStart($sid_regen_prob)))
 		{
-      ulLog::DebugLog('Cannot start uLogin session.', 5);
+			ulLog::DebugLog('Cannot start uLogin session.', 5);
 			ul_fail('Cannot start session.');
 			return false;
 		}
@@ -404,7 +421,7 @@ function sses_write_close()
 // Are we inside a secure session? Returns a boolean.
 function sses_running()
 {
-	return ulSessionManager::$SessionRunning;
+    return ulSessionManager::$SessionRunning;
 }
 
 // Returns a boolean value that indicates if the previous session

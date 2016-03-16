@@ -14,6 +14,7 @@ function ulogin_base_autoload($classname)
 		$map['ulLog'] = UL_INC_DIR.'/Log.inc.php';
 		$map['ulLoginBackend'] = UL_INC_DIR.'/LoginBackend.inc.php';
 		$map['ulPhpDefaultSessionStorage'] = UL_INC_DIR.'/PhpDefaultSessionStorage.inc.php';
+		$map['ulKeyStats'] = UL_INC_DIR.'/KeyStats.inc.php';
 	}
 
 	if (isset($map[$classname]))
